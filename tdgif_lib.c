@@ -12,15 +12,37 @@ tdgif_lib.c - Tiny "GIF" decoding
 #include "tgif_lib_private.h"
 
 #ifdef __AVR
-typedef __uint24 uint24_t;
 #include <avr/pgmspace.h>
+#include <avr/io.h>
+typedef __uint24 uint24_t;
 #define printf()
+
+#ifdef USE_ALLOCA
+#define ALLOC(x) alloca_check(x) ? alloca(x) : 0;
+#define FREE(x)
+
+static uint8_t alloca_check(uint16_t size) {
+	const int margin = 64;
+	char *stackp = (char*)SP;
+	char *e = (char*)&_end;
+	uint16_t avail = stackp - e;
+	if (avail >= (size+margin)) return 1;
+	return 0;
+}
+
+#else
+#define ALLOC(x) malloc(x)
+#define FREE(x) free(x)
+#endif
+
 #else
 #include <stdio.h>
 typedef uint32_t uint24_t;
 #define PROGMEM
 #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 #define pgm_read_word(addr) (*(const unsigned short *)(addr))
+#define ALLOC(x) malloc(x)
+#define FREE(x) free(x)
 #endif
 
 typedef struct TDGifPrivateType {
@@ -247,7 +269,7 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
     Private->CrntShiftState = 0;    /* No information in CrntShiftDWord. */
     Private->CrntShiftDWord = 0;
 
-    uint8_t *Alloc = malloc(Private->DictSize * 4);
+    uint8_t *Alloc = ALLOC(Private->DictSize * 4);
     if (!Alloc) {
 	Info->Error = D_TGIF_ERR_NOT_ENOUGH_MEM;
 	return TGIF_ERROR;
@@ -271,7 +293,7 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
 
     while (i < PixelCount) {    /* Decode all.. */
         if (TDGifDecompressInput(Private, &CrntCode) == TGIF_ERROR) {
-            free(Alloc);
+            FREE(Alloc);
             return TGIF_ERROR;
         }
 
@@ -334,7 +356,7 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
             if (StackPtr >= Private->DictSize || CrntPrefix > Private->MaxCodePoint) {
 		//printf("StackPtr %d CrntPrefix %d ", StackPtr, CrntPrefix);
                 Info->Error = D_TGIF_ERR_IMAGE_DEFECT;
-                free(Alloc);
+                FREE(Alloc);
                 return TGIF_ERROR;
             }
 
@@ -367,7 +389,7 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
         LastCode = CrntCode;
     }
 
-    free(Alloc);
+    FREE(Alloc);
     return TGIF_OK;
 }
 
