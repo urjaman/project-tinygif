@@ -1,0 +1,15 @@
+Project "Tiny GIF"
+------------------
+
+This is a WIP project to decode "tiny gifs" (not really gifs anymore)
+on a limited-SRAM AVR.
+
+Format specs:
+- up to 256-color palette
+- palette stored as RGB565
+- max 1023x1023 size
+- max 10 bit LZW codes
+- can be configured for decode with 256 to 4096 bytes of SRAM in 256b increments
+(- no big headers, extensions or any of the other weird things gif has)
+
+

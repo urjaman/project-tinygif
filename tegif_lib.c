@@ -465,7 +465,7 @@ TEGifCompressOutput(TGifFileType *GifFile,
                                FLUSH_OUTPUT) == TGIF_ERROR)
             retval = TGIF_ERROR;
     } else {
-	printf("Co:%d/%d ", Code, Private->RunningBits);
+	//printf("Co:%d/%d ", Code, Private->RunningBits);
         Private->CrntShiftDWord |= ((long)Code) << Private->CrntShiftState;
         Private->CrntShiftState += Private->RunningBits;
         while (Private->CrntShiftState >= 8) {
