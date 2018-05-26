@@ -182,7 +182,7 @@ const uint16_t MaxSz)
 
     Info->Colors = (const TGifColorType*)( ((const uint8_t*)TGif) + 4);
 
-    int ColorTableSize = sizeof(TGifColorType) * Info->ColorCount;
+    unsigned int ColorTableSize = sizeof(TGifColorType) * Info->ColorCount;
     Info->Data = (const uint8_t*)TGif + 4 + ColorTableSize;
 
     /* Second MaxSz check */
@@ -216,7 +216,7 @@ static uint8_t BitSize(uint16_t n) {
  the maximum possible if image O.k. - LZ_MAX_CODE times.
 ******************************************************************************/
 static int
-TDGifGetPrefixChar(TDGifPrivateType *Private, int Code, int ClearCode)
+TDGifGetPrefixChar(TDGifPrivateType *Private, unsigned int Code, unsigned int ClearCode)
 {
     int i = 0;
 
