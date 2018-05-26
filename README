@@ -12,4 +12,11 @@ Format specs:
 - can be configured for decode with 256 to 4096 bytes of SRAM in 256b increments
 (- no big headers, extensions or any of the other weird things gif has)
 
-
+Usage:
+# you need giflib headers for the encoder ("convert")
+$ make
+# look at Makefile if you have issues. It's short enough :P
+$ ./convert ~/your.gif tiny.bin
+# you can test that it is decodable w/testdec (and enjoy a horrible ASCII rendition of it)
+$ ./testdec tiny.bin
+# but really i expect you to include tdgif_lib.h and tdgif_lib.c in/from your MCU project, etc.
