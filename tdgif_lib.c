@@ -18,8 +18,11 @@ typedef __uint24 uint24_t;
 #define printf()
 
 #ifdef USE_ALLOCA
+#include <alloca.h>
 #define ALLOC(x) alloca_check(x) ? alloca(x) : 0;
 #define FREE(x)
+
+extern char _end;
 
 static uint8_t alloca_check(uint16_t size) {
 	const int margin = 64;
