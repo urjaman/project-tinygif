@@ -88,19 +88,11 @@ TDGifInput(TDGifPrivateType *Private, uint8_t *NextByte)
 }
 
 
-static const unsigned short CodeMasks[] PROGMEM = {
-	0x0000, 0x0001, 0x0003, 0x0007,
-	0x000f, 0x001f, 0x003f, 0x007f,
-	0x00ff, 0x01ff, 0x03ff
-};
-
-
-
 /******************************************************************************
  The LZ decompression input routine:
  This routine is responsable for the decompression of the bit stream from
  8 bits (bytes) packets, into the real codes.
- Returns GIF_OK if read successfully.
+ Returns TGIF_OK if read successfully.
 ******************************************************************************/
 static int
 TDGifDecompressInput(TDGifPrivateType *Private, uint16_t *Code)
@@ -110,33 +102,37 @@ TDGifDecompressInput(TDGifPrivateType *Private, uint16_t *Code)
      * if possible */
 
     uint8_t NextByte;
+    uint8_t CrntShiftState = Private->CrntShiftState;
+    uint24_t CrntShiftDWord = Private->CrntShiftDWord;
 
-    while (Private->CrntShiftState < Private->RunningBits) {
+    while (CrntShiftState < Private->RunningBits) {
         /* Needs to get more bytes from input stream for next code: */
         if (TDGifInput(Private, &NextByte) == TGIF_ERROR) {
             return TGIF_ERROR;
         }
         uint24_t BigNextByte = NextByte;
-	uint8_t BigShift = Private->CrntShiftState;
+	uint8_t BigShift = CrntShiftState;
 	if (BigShift >= 8) {
 		BigShift -= 8;
 		BigNextByte <<= 8;
 	}
-        Private->CrntShiftDWord |= BigNextByte << BigShift;
-        Private->CrntShiftState += 8;
+        CrntShiftDWord |= BigNextByte << BigShift;
+        CrntShiftState += 8;
     }
-    *Code = Private->CrntShiftDWord & pgm_read_word(&(CodeMasks[Private->RunningBits]));
+    *Code = CrntShiftDWord & (Private->MaxCode1 - 1);
     //printf("Co:%d/%d ", *Code, Private->RunningBits);
     uint8_t BigShift = Private->RunningBits;
     if (BigShift >= 8) {
         BigShift -= 8;
-	Private->CrntShiftDWord >>= 8;
+	CrntShiftDWord >>= 8;
     }
-    Private->CrntShiftDWord >>= BigShift;
-    Private->CrntShiftState -= Private->RunningBits;
+    CrntShiftDWord >>= BigShift;
+    CrntShiftState -= Private->RunningBits;
 
-    /* If code cannot fit into RunningBits bits, must raise its size. Note
-     * however that codes above 4095 are used for special signaling.
+    Private->CrntShiftDWord = CrntShiftDWord;
+    Private->CrntShiftState = CrntShiftState;
+
+    /* If code cannot fit into RunningBits bits, must raise its size.
      * If we're using LZ_BITS bits already and we're at the max code, just
      * keep using the table as it is, don't increment Private->RunningCode.
      */
@@ -260,8 +256,6 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
     }
     Private->MaxCodePoint = Private->DictBase + (Private->DictSize-1); /* Maximum code actually used */
     Private->MaxCodeBits = BitSize(Private->MaxCodePoint);
-    //Private->DictBase -= 2;
-    //Private->DictSize += 2;
 
     //printf("CodeCount %d ", CodeCount);
     Private->ClearCode = CodeCount;
@@ -304,7 +298,7 @@ TDGifDecompress(TGifInfo *Info, void(*OutputCB)(uint8_t) )
             /* We need to start over again: */
             for (uint16_t j = 0; j < Private->DictSize; j++)
                 Prefix[j] = NO_SUCH_CODE;
-            Private->RunningCode = CodeCount+1;
+            Private->RunningCode = CodeCount + 1;
             Private->RunningBits = Private->InitCodeBits;
             Private->MaxCode1 = 1 << Private->RunningBits;
             LastCode = NO_SUCH_CODE;
